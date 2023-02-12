@@ -3,6 +3,10 @@
   ==========
   An 8 voice swarm square wave oscillator 'instrument'
   Replace the potentiometer on A1 with a softpot or similar for expressive playing potential
+  
+  For higher quality audio output use HIFI Mode
+  https://sensorium.github.io/Mozzi/learn/output/#output-circuit-for-hifi-mode
+  
   Thanks to Sound Simulator on YouTube for the idea
   https://www.youtube.com/watch?v=0H5wQOUrlIY&t=227s
 */
