@@ -1,0 +1,109 @@
+/*
+  Swarmduino
+  ==========
+  An 8 voice swarm square wave oscillator 'instrument'
+  Replace the potentiometer on A1 with a softpot or similar for expressive playing potential
+  Thanks to Sound Simulator on YouTube for the idea
+  https://www.youtube.com/watch?v=0H5wQOUrlIY&t=227s
+*/
+
+#include <MozziGuts.h>
+#include <Oscil.h> // oscillator template
+#include <tables/square_analogue512_int8.h> // sine table for oscillator
+
+#define CONTROL_RATE 128 // Hz, powers of 2 are most reliable
+
+// harmonics
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin1(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin2(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin3(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin4(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin5(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin6(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin7(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, AUDIO_RATE> aSin8(SQUARE_ANALOGUE512_DATA);
+
+// volume controls
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol1(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol2(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol3(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol4(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol5(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol6(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol7(SQUARE_ANALOGUE512_DATA);
+Oscil<SQUARE_ANALOGUE512_NUM_CELLS, CONTROL_RATE> kVol8(SQUARE_ANALOGUE512_DATA);
+
+int PWMPin = 9;
+int TonePin = A1;
+int SpanPin = A0;
+float Tone, Span;
+
+char v1,v2,v3,v4,v5,v6,v7,v8;
+
+void setup() {
+  pinMode(TonePin, INPUT);
+  pinMode(SpanPin, INPUT);
+  // set harmonic frequencies
+  aSin1.setFreq(100);
+  aSin2.setFreq(100);
+  aSin3.setFreq(100);
+  aSin4.setFreq(100);
+  aSin5.setFreq(100);
+  aSin6.setFreq(100);
+  aSin7.setFreq(100);
+  aSin8.setFreq(100);
+
+  // set volume change frequencies
+  kVol1.setFreq(0.42f); // more of a pulse // change for pulsating while mute
+  kVol2.setFreq(0.0245f);
+  kVol3.setFreq(0.019f);
+  kVol4.setFreq(0.07f);
+  kVol5.setFreq(0.047f);
+  kVol6.setFreq(0.031f);
+  kVol7.setFreq(0.0717f);
+  kVol8.setFreq(0.041f);
+
+  v1=v2=v3=v4=v5=v6=v7=v8=127;
+  startMozzi(CONTROL_RATE);
+}
+
+float mapf(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void updateControl() {
+  Tone = map(mozziAnalogRead(TonePin), 0, 669, 55.0, 660.0);
+  Span = mozziAnalogRead(SpanPin);
+  aSin1.setFreq(Tone);
+  aSin2.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.1)));
+  aSin3.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.2)));
+  aSin4.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.3)));
+  aSin5.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.4)));
+  aSin6.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.5)));
+  aSin7.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.25)));
+  aSin8.setFreq(Tone + (float)(Tone * mapf(Span, 0, 699, 0, 1.26)));
+   v1 = kVol1.next();
+   v2 = kVol2.next();
+   v3 = kVol3.next();
+   v4 = kVol4.next();
+   v5 = kVol5.next();
+   v6 = kVol6.next();
+   v7 = kVol7.next();
+   v8 = kVol8.next();
+}
+
+int updateAudio() {
+    int asig1 = (aSin1.next()*v1 + aSin2.next()*v2)>>1;
+    int asig2 = (aSin3.next()*v3 + aSin4.next()*v4)>>1;
+    int asig3 = (aSin5.next()*v5 + aSin6.next()*v6)>>1;
+    int asig4 = (aSin7.next()*v7 + aSin8.next()*v8)>>1;
+    int asig5 = (asig1 + asig2)>>1;
+    int asig6 = (asig3 + asig4)>>1;
+    int asigDRN = (asig5 + asig6)>>7;
+  return(asigDRN);
+}
+
+void loop() {
+  audioHook();
+}
